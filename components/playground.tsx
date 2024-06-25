@@ -45,11 +45,31 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import CKEditorComponent from "./CKeditor"
+import { useState } from "react"
 
 export function PlayGround() {
-  const handleClick = (e) => {
+  const [youtubeUrl, setYoutubeUrl] = useState("")
+  const [videoId, setVideoId] = useState("")
+
+  const extractVideoId = (url) => {
+    try {
+      const urlObj = new URL(url)
+      const params = new URLSearchParams(urlObj.search)
+      return params.get("v")
+    } catch (error) {
+      console.error("Invalid URL:", error)
+      return null
+    }
+  }
+
+  const handleSubmit = (e) => {
     e.preventDefault()
-    console.log("clicked")
+    const id = extractVideoId(youtubeUrl)
+    if (id) {
+      setVideoId(id)
+    } else {
+      alert("Invalid YouTube URL")
+    }
   }
 
   return (
@@ -305,12 +325,15 @@ export function PlayGround() {
             Share
           </Button>
         </header>
-        <main className="grid flex-1 gap-4 overflow-auto p-4 md:grid-cols-2">
+        <main className="grid flex-1 gap-4 overflow-auto p-4 md:grid-cols-2 lg:grid-cols-3">
           <div
             className="relative hidden flex-col items-start gap-8 md:flex"
             x-chunk="dashboard-03-chunk-0"
           >
-            <form className="grid w-full items-start gap-6">
+            <form
+              onSubmit={handleSubmit}
+              className="grid w-full items-start gap-6"
+            >
               <fieldset className="grid gap-6 rounded-lg border p-4">
                 <legend className="-ml-1 px-1 text-sm font-medium">
                   Settings
@@ -319,14 +342,34 @@ export function PlayGround() {
                   <Label htmlFor="model">Youtube Video URL</Label>
 
                   <div className="flex items-center justify-center gap-2">
-                    <Input placeholder="Paste URL here..." />
-                    <Button onClick={(e) => handleClick(e)}> Generate</Button>
+                    <Input
+                      type="text"
+                      id="youtubeUrl"
+                      placeholder="Paste URL here..."
+                      value={youtubeUrl}
+                      onChange={(e) => setYoutubeUrl(e.target.value)}
+                    />
+                    <Button type="submit"> Generate</Button>
                   </div>
+                  {videoId && (
+                    <div>
+                      <p>Extracted Video ID: {videoId}</p>
+                      <iframe
+                        width="560"
+                        height="315"
+                        src={`https://www.youtube.com/embed/${videoId}`}
+                        title="YouTube video player"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      ></iframe>
+                    </div>
+                  )}
                 </div>
               </fieldset>
             </form>
           </div>
-          <div className="">
+          <div className="lg:col-span-2">
             <fieldset className="grid gap-6 rounded-lg border p-4">
               <legend className="-ml-1 px-1 text-sm font-medium">
                 CK Editor
