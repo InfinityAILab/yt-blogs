@@ -46,12 +46,16 @@ import {
 } from "@/components/ui/tooltip"
 import { useState } from "react"
 import MarkdownEditor from "./Markdown"
+import Modal from "./ui/modal"
+import Link from "next/link"
 
 export function PlayGround() {
   const [youtubeUrl, setYoutubeUrl] = useState("")
   const [videoId, setVideoId] = useState("")
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false)
+  const [text, setText] = useState("### Make your first Markdown...")
 
-  const extractVideoId = (url) => {
+  const extractVideoId = (url: string) => {
     try {
       const urlObj = new URL(url)
       const params = new URLSearchParams(urlObj.search)
@@ -62,7 +66,7 @@ export function PlayGround() {
     }
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: any) => {
     e.preventDefault()
     const id = extractVideoId(youtubeUrl)
     if (id) {
@@ -70,6 +74,15 @@ export function PlayGround() {
     } else {
       alert("Invalid YouTube URL")
     }
+  }
+  const handleShare = () => {
+    setIsShareModalOpen(true)
+  }
+  const closeShareModal = () => {
+    setIsShareModalOpen(false)
+  }
+  const handleSaveText = () => {
+    localStorage.setItem("markdownText", text)
   }
 
   return (
@@ -320,6 +333,7 @@ export function PlayGround() {
             variant="outline"
             size="sm"
             className="ml-auto gap-1.5 text-sm"
+            onClick={handleShare}
           >
             <Share className="size-3.5" />
             Share
@@ -410,11 +424,29 @@ export function PlayGround() {
               <legend className="-ml-1 px-1 text-sm font-medium">
                 Markkdown Editor
               </legend>
-              <MarkdownEditor />
+              <MarkdownEditor text={text} setText={setText} />
             </fieldset>
           </div>
         </main>
       </div>
+
+      {/* Modal */}
+      <Modal
+        isOpen={isShareModalOpen}
+        onClose={closeShareModal}
+        title="Share this content"
+      >
+        <div className="flex items-center justify-center gap-2">
+          <Input type="text" />
+          <Button
+            className="bg-white hover:bg-gray-100 border rounded-lg text-black"
+            onClick={handleSaveText}
+          >
+            <Link href="/user/username/blog-slug">Post</Link>
+          </Button>
+        </div>
+        {/* Add your sharing options or other content here */}
+      </Modal>
     </div>
   )
 }

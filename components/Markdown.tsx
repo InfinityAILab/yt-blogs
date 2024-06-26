@@ -22,19 +22,17 @@ const MdEditor = dynamic(() => import("react-markdown-editor-lite"), {
 
 const mdParser = new markdownIt()
 
-export default function MarkdownEditor() {
-  const [markdown, setMarkdown] = useState("# Hello, Markdown!")
-
+export default function MarkdownEditor({ text, setText }: any) {
   const handleEditorChange = ({ text }: { text: string }) => {
-    setMarkdown(text)
+    setText(text)
   }
 
   return (
     <div className="overflow-auto">
       <MdEditor
         style={{ height: "650px" }}
-        value={markdown}
-        onChange={handleEditorChange}
+        value={text}
+        onChange={(text) => handleEditorChange(text)}
         renderHTML={(text) => (
           <div
             className="markdown-body prose"
