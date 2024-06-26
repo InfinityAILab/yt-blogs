@@ -2,7 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-  
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -57,4 +56,19 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+.markdown-body pre {
+  background-color: #2d2d2d;
+  color: #f8f8f2;
+  padding: 1em;
+  border-radius: 5px;
+  overflow: auto;
+}
+
+.markdown-body code {
+  background-color: #2d2d2d;
+  color: #f8f8f2;
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-size: 90%;
 }
