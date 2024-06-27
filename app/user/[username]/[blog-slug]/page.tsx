@@ -1,7 +1,11 @@
 "use client"
 import { useEffect, useState } from "react"
-import markdownit from "markdown-it"
+import markdownIt from "markdown-it"
 import "react-markdown-editor-lite/lib/index.css"
+import { a11yDark } from "react-syntax-highlighter/dist/esm/styles/prism"
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
+import { renderToString } from "react-dom/server"
+
 import "./../../../../app/globals.css"
 import {
   BookmarkIcon,
@@ -10,7 +14,22 @@ import {
   HeartIcon,
 } from "@heroicons/react/24/outline"
 
-const mdParser = new markdownit()
+const mdParser = new markdownIt({
+  html: true,
+  highlight: function (str, lang) {
+    if (lang) {
+      try {
+        const highlighted = renderToString(
+          <SyntaxHighlighter style={a11yDark} language={lang} PreTag="div">
+            {str}
+          </SyntaxHighlighter>
+        )
+        return highlighted
+      } catch (__) {}
+    }
+    return ""
+  },
+})
 
 const BlogPage = () => {
   const [text, setText] = useState("")
