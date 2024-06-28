@@ -7,6 +7,7 @@ import "react-markdown-editor-lite/lib/index.css"
 import { a11yDark } from "react-syntax-highlighter/dist/esm/styles/prism"
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
 import { renderToString } from "react-dom/server"
+import { Label } from "./ui/label"
 
 // import "./../app/globals.css"
 
@@ -39,24 +40,23 @@ const mdParser = new markdownIt({
   },
 })
 
-export default function MarkdownEditor({ text, setText }: any) {
+export default function MarkdownEditor({ text, setMdText }: any) {
   const handleEditorChange = ({ text }: { text: string }) => {
-    setText(text)
+    setMdText(text)
   }
 
   return (
-    <div className="overflow-auto">
+    <div className="overflow-auto h-full">
       <MdEditor
-        style={{ height: "650px" }}
         value={text}
         onChange={(text) => handleEditorChange(text)}
         renderHTML={(text) => (
           <div
-            className="markdown-body prose"
-            dangerouslySetInnerHTML={{ __html: mdParser.render(text) }}
+          className="markdown-body prose"
+          dangerouslySetInnerHTML={{ __html: mdParser.render(text) }}
           />
         )}
-        className="border border-gray-300 rounded-lg"
+        className="border border-gray-300 rounded-lg h-full overflow-hidden"
       />
     </div>
   )

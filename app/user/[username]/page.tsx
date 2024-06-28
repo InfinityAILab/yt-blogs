@@ -23,7 +23,7 @@ export default function page() {
         </div>
         <div className="flex flex-col sm:items-center sm:justify-center max-w-4xl mx-auto gap-6">
           <h3 className="text-3xl font-extrabold mt-8 sm:mt-12 tracking-wide">
-            Chris Bongers
+            John Doe
           </h3>
           <h5 className="sm:text-center text-lg">
             Looking to get into development? As a full-stack developer I guide

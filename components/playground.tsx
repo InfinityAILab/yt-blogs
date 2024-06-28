@@ -5,8 +5,12 @@ import {
   Bot,
   Code2,
   CornerDownLeft,
+  ExternalLinkIcon,
   LifeBuoy,
+  Loader2Icon,
+  LoaderIcon,
   Mic,
+  MoveUpRightIcon,
   Paperclip,
   Rabbit,
   Settings,
@@ -18,6 +22,7 @@ import {
   Turtle,
 } from "lucide-react"
 
+import { FormEvent } from 'react';
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -53,9 +58,12 @@ import Link from "next/link"
 
 export function PlayGround() {
   const [youtubeUrl, setYoutubeUrl] = useState("")
+  const [title, setTitle] = useState("")
+  const [slug, setSlug] = useState("")
   const [videoId, setVideoId] = useState("")
   const [isShareModalOpen, setIsShareModalOpen] = useState(false)
-  const [text, setText] = useState("### Make your first Markdown...")
+  const [isLoading, setIsLoading] = useState(false)
+  const [mdText, setMdText] = useState('')
 
   const extractVideoId = (url: string) => {
     try {
@@ -68,31 +76,66 @@ export function PlayGround() {
     }
   }
 
-  const handleSubmit = (e: any) => {
+  function extractBlogDataFromApiResponse(text: string) {
+    const titleMatch = text.match(/<title>(.*?)<\/title>/);
+    const slugMatch = text.match(/<slug>(.*?)<\/slug>/);
+  
+    const title = titleMatch ? titleMatch[1] : null;
+    const slug = slugMatch ? slugMatch[1] : null;
+  
+    const markdown = text
+      .replace(/<title>.*?<\/title>/, '')
+      .replace(/<slug>.*?<\/slug>/, '')
+      .trim();
+  
+    return { title, slug, markdown };
+  }
+
+  const handleSubmit = async (e: any) => {
     e.preventDefault()
+    setIsLoading(true)
     const id = extractVideoId(youtubeUrl)
     if (id) {
       setVideoId(id)
-    } else {
-      alert("Invalid YouTube URL")
+      try {
+        const response = await fetch(`/api/fetchTranscript?videoId=${encodeURIComponent(id)}`);
+        const data = await response.json();
+  
+        if (response.ok) {
+          const { title, slug, markdown } = extractBlogDataFromApiResponse(data?.blogPost)
+          setTitle(title || '')
+          setSlug(slug || '')
+          setMdText(markdown)
+        } else {
+          console.log('data.error', data.error)
+        }
+      } catch (err) {
+        console.log('An unexpected error occurred');
+      } finally {
+        console.log('done')
+      }
     }
+    setIsLoading(false)
   }
+
+
   const handleShare = () => {
     setIsShareModalOpen(true)
   }
   const closeShareModal = () => {
     setIsShareModalOpen(false)
   }
+
   const handleSaveText = () => {
-    localStorage.setItem("markdownText", text)
+    localStorage.setItem("markdownText", mdText)
   }
 
   return (
-    <div className="grid h-screen w-full pl-[53px]">
-      <aside className="inset-y fixed  left-0 z-20 flex h-full flex-col border-r">
+    <div className="h-screen w-full ">
+      <aside className="inset-y fixed left-0 z-20 flex h-full flex-col border-r">
         <div className="border-b p-2">
           <Button variant="outline" size="icon" aria-label="Home">
-            <Triangle className="size-5 fill-foreground" />
+            <Triangle className="size-5 fill-foreground transform rotate-45" />
           </Button>
         </div>
         <nav className="grid gap-1 p-2">
@@ -112,7 +155,7 @@ export function PlayGround() {
                 Playground
               </TooltipContent>
             </Tooltip>
-            <Tooltip>
+            {/* <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
@@ -156,7 +199,7 @@ export function PlayGround() {
               <TooltipContent side="right" sideOffset={5}>
                 Documentation
               </TooltipContent>
-            </Tooltip>
+            </Tooltip> 
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -171,10 +214,10 @@ export function PlayGround() {
               <TooltipContent side="right" sideOffset={5}>
                 Settings
               </TooltipContent>
-            </Tooltip>
+            </Tooltip> */}
           </TooltipProvider>
         </nav>
-        <nav className="mt-auto grid gap-1 p-2">
+        {/* <nav className="mt-auto grid gap-1 p-2">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -207,11 +250,11 @@ export function PlayGround() {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-        </nav>
+        </nav> */}
       </aside>
-      <div className="flex flex-col">
-        <header className="sticky top-0 z-10 flex h-[53px] items-center gap-1 border-b bg-background px-4">
-          <h1 className="text-xl font-semibold">Playground</h1>
+      <div className="flex flex-col h-full ">
+        <header className="fixed w-full h-[53px] left-[53px] top-0 z-10 flex items-center justify-between gap-1 border-b bg-background px-4">
+          <h1 className="text-xl font-semibold">yoblog</h1>
           <Drawer>
             <DrawerTrigger asChild>
               <Button variant="ghost" size="icon" className="md:hidden">
@@ -331,109 +374,108 @@ export function PlayGround() {
               </form>
             </DrawerContent>
           </Drawer>
-          <Button
-            variant="outline"
-            size="sm"
-            className="ml-auto gap-1.5 text-sm"
-            onClick={handleShare}
-          >
-            <Share className="size-3.5" />
-            Share
-          </Button>
         </header>
-        <main className="grid flex-1 gap-4 overflow-auto p-4 md:grid-cols-2 lg:grid-cols-3 h-[100vh-200px]">
-          <div
-            className="relative hidden flex-col items-start gap-8 md:flex"
-            x-chunk="dashboard-03-chunk-0"
-          >
-            <form
-              onSubmit={handleSubmit}
-              className="grid w-full items-start gap-6"
-            >
-              <fieldset className="grid gap-6 rounded-lg border p-4">
-                <legend className="-ml-1 px-1 text-sm font-medium">
-                  ID Extractor
-                </legend>
-                <div className="grid gap-3">
-                  <Label htmlFor="model">Youtube Video URL</Label>
-
-                  <div className="flex items-center justify-center gap-2">
+        <main className="pl-16 pt-16 grid flex-1 gap-4 h-full overflow-y-auto p-4 md:grid-cols-2 lg:grid-cols-3">
+          <fieldset className="grid gap-6 rounded-lg border p-4 h-full">
+            <legend className="-ml-1 px-1 text-sm font-medium">
+              Blog :: Details
+            </legend>
+            <div className="flex flex-col gap-3">
+              <div>
+                <Label htmlFor="title">Youtube Video URL</Label>
+                <div className="flex items-center justify-center gap-2">
+                  <Input
+                    type="text"
+                    id="youtubeUrl"
+                    placeholder="Paste URL here..."
+                    value={youtubeUrl}
+                    onChange={(e) => setYoutubeUrl(e.target.value)}
+                  />
+                  <Button disabled={!youtubeUrl} onClick={handleSubmit} type="submit" >
+                    {isLoading ? <Loader2Icon className="animate-spin" /> : 'Create Blog'}
+                  </Button>
+                </div>
+              </div>
+              {videoId && (
+                <div>
+                  <Label htmlFor="title">Preview</Label>
+                  <div className="h-52 xl:h-72 w-full mx-auto border rounded-lg overflow-hidden">
+                    
+                    <iframe
+                      className="h-52 xl:h-72 w-full mx-auto rounded-lg overflow-hidden"
+                      width="100%"
+                      height="384"
+                      src={`https://www.youtube.com/embed/${videoId}`}
+                      title="YouTube video player"
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    ></iframe>
+                  </div>
+                </div>
+              )}
+              <div className="w-full">
+                <fieldset className="grid gap-6 rounded-lg border p-4">
+                  <legend className="-ml-1 px-1 text-sm font-medium">
+                    Post :: Blog
+                  </legend>
+                  <div className="grid gap-3 ">
+                    <Label htmlFor="model">Title</Label>
                     <Input
                       type="text"
-                      id="youtubeUrl"
-                      placeholder="Paste URL here..."
-                      value={youtubeUrl}
-                      onChange={(e) => setYoutubeUrl(e.target.value)}
+                      placeholder=""
+                      id="title"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
                     />
-                    <Button type="submit"> Generate</Button>
+                    <Label htmlFor="model">Slug*</Label>
+
+                    <Input
+                      type="text"
+                      placeholder=""
+                      id="slug"
+                      value={slug}
+                      onChange={(e) => setSlug(e.target.value)}
+                    />
+                    {/* <Label htmlFor="model">Tags (SEO)</Label>
+
+                    <textarea
+                      className="border border-gray-300 rounded-md p-2 focus-within:ring-gray-300"
+                      placeholder=""
+                      // id="youtubeUrl"
+                      // value={youtubeUrl}
+                      // onChange={(e) => setYoutubeUrl(e.target.value)}
+                    /> */}
+                    {/* </div> */}
+                    {(mdText && slug) && <div className="relative ml-auto">
+                      <Button
+                        size="sm"
+                        className="gap-2 text-sm"
+                        onClick={handleShare}
+                      >
+                        <Link href={`/user/john-doe/${slug}`} className="flex items-center gap-2 text-sm">
+                          Post
+                          <MoveUpRightIcon className="size-3.5" />
+                        </Link>
+                      </Button>
+                    </div>}
                   </div>
-                  {videoId && (
-                    <div>
-                      <p>Extracted Video ID: {videoId}</p>
-                      <iframe
-                        width="500"
-                        height="315"
-                        src={`https://www.youtube.com/embed/${videoId}`}
-                        title="YouTube video player"
-                        frameBorder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                      ></iframe>
-                    </div>
-                  )}
-                </div>
-              </fieldset>
-            </form>
-            <div className="h-1 w-full border-t"></div>
-            <div className="w-full">
-              <fieldset className="grid gap-6 rounded-lg border p-4">
-                {/* <legend className="-ml-1 px-1 text-sm font-medium"></legend> */}
-                <div className="grid gap-3 ">
-                  <Label htmlFor="model">Title</Label>
-                  {/* <div className="flex items-center justify-center gap-2"> */}
-                  <Input
-                    type="text"
-                    placeholder=""
-                    // id="youtubeUrl"
-                    // value={youtubeUrl}
-                    // onChange={(e) => setYoutubeUrl(e.target.value)}
-                  />
-                  <Label htmlFor="model">Slug</Label>
-
-                  <Input
-                    type="text"
-                    placeholder=""
-                    // id="youtubeUrl"
-                    // value={youtubeUrl}
-                    // onChange={(e) => setYoutubeUrl(e.target.value)}
-                  />
-                  <Label htmlFor="model">SEO</Label>
-
-                  <textarea
-                    className="border border-gray-300 rounded-md p-2 focus-within:ring-gray-300"
-                    placeholder=""
-                    // id="youtubeUrl"
-                    // value={youtubeUrl}
-                    // onChange={(e) => setYoutubeUrl(e.target.value)}
-                  />
-                  {/* </div> */}
-                </div>
-              </fieldset>
+                </fieldset>
+              </div>
             </div>
-          </div>
-          <div className="lg:col-span-2">
-            <fieldset className="grid gap-6 rounded-lg border p-4">
+          </fieldset>
+          <div className="lg:col-span-2 h-full">
+            <fieldset className="grid gap-6 rounded-lg border p-4 h-full">
               <legend className="-ml-1 px-1 text-sm font-medium">
-                Markkdown Editor
+                Blog :: Markdown Editor
               </legend>
-              <MarkdownEditor text={text} setText={setText} />
+              <MarkdownEditor text={mdText} setMdText={setMdText} />
             </fieldset>
           </div>
         </main>
       </div>
-
       {/* Modal */}
-      <Modal
+      {/* <Modal
         isOpen={isShareModalOpen}
         onClose={closeShareModal}
         title="Share this content"
@@ -447,8 +489,7 @@ export function PlayGround() {
             <Link href="/user/username/blog-slug">Post</Link>
           </Button>
         </div>
-        {/* Add your sharing options or other content here */}
-      </Modal>
+      </Modal> */}
     </div>
   )
 }
