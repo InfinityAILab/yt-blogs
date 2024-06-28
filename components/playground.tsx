@@ -46,6 +46,8 @@ import {
 } from "@/components/ui/tooltip"
 import { useState } from "react"
 import MarkdownEditor from "./Markdown"
+import "react-markdown-editor-lite/lib/index.css"
+
 import Modal from "./ui/modal"
 import Link from "next/link"
 

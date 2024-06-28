@@ -4,9 +4,12 @@ import dynamic from "next/dynamic"
 import { useState } from "react"
 import markdownIt from "markdown-it"
 import "react-markdown-editor-lite/lib/index.css"
-import "./../app/globals.css"
+import { a11yDark } from "react-syntax-highlighter/dist/esm/styles/prism"
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
+import { renderToString } from "react-dom/server"
 
-// Define the types we need
+// import "./../app/globals.css"
+
 interface EditorProps {
   value: string
   style?: React.CSSProperties
@@ -15,12 +18,26 @@ interface EditorProps {
   className?: string
 }
 
-// Use dynamic import for the editor
 const MdEditor = dynamic(() => import("react-markdown-editor-lite"), {
   ssr: false,
 }) as React.ComponentType<EditorProps>
 
-const mdParser = new markdownIt()
+const mdParser = new markdownIt({
+  html: true,
+  highlight: function (str, lang) {
+    if (lang) {
+      try {
+        const highlighted = renderToString(
+          <SyntaxHighlighter style={a11yDark} language={lang} PreTag="div">
+            {str}
+          </SyntaxHighlighter>
+        )
+        return highlighted
+      } catch (__) {}
+    }
+    return ""
+  },
+})
 
 export default function MarkdownEditor({ text, setText }: any) {
   const handleEditorChange = ({ text }: { text: string }) => {
