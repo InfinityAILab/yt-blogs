@@ -72,7 +72,7 @@ const BlogPage = () => {
             <div className="flex gap-2 sm:gap-4 items-center">
               <div className="bg-gray-600 w-8 h-8 sm:w-10 sm:h-10 rounded-full"></div>
               <div>
-                <h4 className="font-bold mb-0.5">Chris Bongers</h4>
+                <h4 className="font-bold mb-0.5">John Doe</h4>
                 <p className="font-light text-xs sm:text-sm">
                   Posted on 20 Jan 2022 • Originally published at
                   daily-dev-tips.com
@@ -90,7 +90,7 @@ const BlogPage = () => {
             <div className="flex gap-4 items-end">
               <div className="bg-gray-600 w-10 h-10 rounded-full"></div>
 
-              <h4 className="font-bold mb-0.5 tracking-wide">Chris Bongers</h4>
+              <h4 className="font-bold mb-0.5 tracking-wide">John Doe</h4>
             </div>
             <button className="my-4 bg-blue-700 text-white w-full py-2 rounded-sm">
               Follow
