@@ -32,7 +32,9 @@ export default function RootLayout({
           `}
         </Script>
       </head>
-      <body className={`h-full w-full relative ${inter.className}`}>
+      <body
+        className={`h-full w-full overflow-hidden relative ${inter.className}`}
+      >
         {children}
       </body>
     </html>
