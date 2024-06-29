@@ -22,7 +22,7 @@ import {
   Turtle,
 } from "lucide-react"
 
-import { FormEvent } from 'react';
+import { FormEvent } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -56,14 +56,72 @@ import "react-markdown-editor-lite/lib/index.css"
 import Modal from "./ui/modal"
 import Link from "next/link"
 
+const initialText = `
+# Streamlining Your Tailwind CSS with the Prettier Plugin
+
+When it comes to deciding the order of your Tailwind utility classes in a project, you may have had discussions with your team or within yourself. Should we sort them alphabetically? By color? Wait, let's schedule a meeting!
+
+In this blog post, we'll take a look at the new Prettier plugin for Tailwind CSS and how it makes those sometimes difficult decisions for you. One less thing to worry about for you and your team.
+
+## Setting Up Prettier
+
+Assuming you may not be familiar with Prettier, we'll do the setup from scratch together. If you're already using Prettier, you only need to install the plugin to get started.
+
+Prettier is an opinionated code formatter that ensures every file in the project is formatted the same way. It has a few options by design, as the whole idea is to stop debating and let the tool make the decisions for you.
+
+Prettier works with a lot of languages and is supported in many editors and IDEs. Wherever Prettier works, the Tailwind CSS plugin will work as well. In this video, I'm using VS Code, but you'll be able to do a similar setup in many other editors.
+
+Let's start by installing Prettier as a dev dependency:
+
+\`\`\`
+npm install --save-dev prettier
+\`\`\`
+
+Now, in the root of our project, I'll create a new file called \`.prettierrc.json\`. This file allows you to pass options if needed, and it also indicates that the project is using Prettier. 
+
+Next, I'll show you how to run Prettier from the command line. I'll use the \`--check\` flag to see if there are any formatting issues in the \`index.html\` file. If there are, I can use the \`--write\` flag to automatically fix them.
+
+\`\`\`
+npx prettier --check index.html
+npx prettier --write index.html
+\`\`\`
+
+However, what I prefer to do is to format the files every time I save them. To set this up in VS Code, I'll open the Extensions panel and search for the Prettier extension. Once installed, I'll go to my VS Code settings and make sure the "Format on Save" option is checked.
+
+Now, whenever I save a file, Prettier will automatically format it for me.
+
+## Integrating the Tailwind CSS Plugin
+
+With Prettier set up, it's time to bring in the Tailwind CSS plugin:
+
+\`\`\`
+npm install --save-dev prettier-plugin-tailwindcss
+\`\`\`
+
+This plugin follows Prettier's auto-loading convention, so as long as you have Prettier set up in your project, it will start working automatically as soon as you install it.
+
+Let's see the plugin in action. I'll paste some Tailwind utility classes into an HTML file and watch what happens when I save it.
+
+The plugin will sort the classes in the same way Tailwind sorts them in the CSS output. Classes in the base layer will be sorted first, followed by the classes in the components layer, and finally the classes in the utilities layer.
+
+The plugin will also group modifiers and place them at the end of the list, and it will handle responsive modifiers as well, grouping them by breakpoint.
+
+If you have a custom class that doesn't come from Tailwind, the plugin will place that class at the start of the list, making it clear what element uses it.
+
+## Wrapping Up
+
+By design, there is no way to customize the sort order. The plugin has strongly held opinions on that, as the biggest benefit of using this plugin is to make these decisions for you, so you can stop debating and arguing with your team.
+
+I hope this blog post has shown you how to add the Prettier plugin to an existing Tailwind CSS project and the real-life benefits it can bring. No more worrying about class sorting - let the tool handle it for you!
+  `
 export function PlayGround() {
   const [youtubeUrl, setYoutubeUrl] = useState("")
-  const [title, setTitle] = useState("")
-  const [slug, setSlug] = useState("")
+  const [title, setTitle] = useState("Tailwind CSS with Prettier Plugin")
+  const [slug, setSlug] = useState("tailwind-with-prettier")
   const [videoId, setVideoId] = useState("")
   const [isShareModalOpen, setIsShareModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [mdText, setMdText] = useState('')
+  const [mdText, setMdText] = useState(initialText)
 
   const extractVideoId = (url: string) => {
     try {
@@ -77,18 +135,18 @@ export function PlayGround() {
   }
 
   function extractBlogDataFromApiResponse(text: string) {
-    const titleMatch = text.match(/<title>(.*?)<\/title>/);
-    const slugMatch = text.match(/<slug>(.*?)<\/slug>/);
-  
-    const title = titleMatch ? titleMatch[1] : null;
-    const slug = slugMatch ? slugMatch[1] : null;
-  
+    const titleMatch = text.match(/<title>(.*?)<\/title>/)
+    const slugMatch = text.match(/<slug>(.*?)<\/slug>/)
+
+    const title = titleMatch ? titleMatch[1] : null
+    const slug = slugMatch ? slugMatch[1] : null
+
     const markdown = text
-      .replace(/<title>.*?<\/title>/, '')
-      .replace(/<slug>.*?<\/slug>/, '')
-      .trim();
-  
-    return { title, slug, markdown };
+      .replace(/<title>.*?<\/title>/, "")
+      .replace(/<slug>.*?<\/slug>/, "")
+      .trim()
+
+    return { title, slug, markdown }
   }
 
   const handleSubmit = async (e: any) => {
@@ -98,26 +156,29 @@ export function PlayGround() {
     if (id) {
       setVideoId(id)
       try {
-        const response = await fetch(`/api/fetchTranscript?videoId=${encodeURIComponent(id)}`);
-        const data = await response.json();
-  
+        const response = await fetch(
+          `/api/fetchTranscript?videoId=${encodeURIComponent(id)}`
+        )
+        const data = await response.json()
+
         if (response.ok) {
-          const { title, slug, markdown } = extractBlogDataFromApiResponse(data?.blogPost)
-          setTitle(title || '')
-          setSlug(slug || '')
+          const { title, slug, markdown } = extractBlogDataFromApiResponse(
+            data?.blogPost
+          )
+          setTitle(title || "")
+          setSlug(slug || "")
           setMdText(markdown)
         } else {
-          console.log('data.error', data.error)
+          console.log("data.error", data.error)
         }
       } catch (err) {
-        console.log('An unexpected error occurred');
+        console.log("An unexpected error occurred")
       } finally {
-        console.log('done')
+        console.log("done")
       }
     }
     setIsLoading(false)
   }
-
 
   const handleShare = () => {
     setIsShareModalOpen(true)
@@ -391,8 +452,16 @@ export function PlayGround() {
                     value={youtubeUrl}
                     onChange={(e) => setYoutubeUrl(e.target.value)}
                   />
-                  <Button disabled={!youtubeUrl} onClick={handleSubmit} type="submit" >
-                    {isLoading ? <Loader2Icon className="animate-spin" /> : 'Create Blog'}
+                  <Button
+                    disabled={!youtubeUrl}
+                    onClick={handleSubmit}
+                    type="submit"
+                  >
+                    {isLoading ? (
+                      <Loader2Icon className="animate-spin" />
+                    ) : (
+                      "Create Blog"
+                    )}
                   </Button>
                 </div>
               </div>
@@ -400,7 +469,6 @@ export function PlayGround() {
                 <div>
                   <Label htmlFor="title">Preview</Label>
                   <div className="h-52 xl:h-72 w-full mx-auto border rounded-lg overflow-hidden">
-                    
                     <iframe
                       className="h-52 xl:h-72 w-full mx-auto rounded-lg overflow-hidden"
                       width="100%"
@@ -447,18 +515,23 @@ export function PlayGround() {
                       // onChange={(e) => setYoutubeUrl(e.target.value)}
                     /> */}
                     {/* </div> */}
-                    {(mdText && slug) && <div className="relative ml-auto">
-                      <Button
-                        size="sm"
-                        className="gap-2 text-sm"
-                        onClick={handleShare}
-                      >
-                        <Link href={`/user/john-doe/${slug}`} className="flex items-center gap-2 text-sm">
-                          Post
-                          <MoveUpRightIcon className="size-3.5" />
-                        </Link>
-                      </Button>
-                    </div>}
+                    {mdText && slug && (
+                      <div className="relative ml-auto">
+                        <Button
+                          size="sm"
+                          className="gap-2 text-sm"
+                          onClick={handleShare}
+                        >
+                          <Link
+                            href={`/user/john-doe/${slug}`}
+                            className="flex items-center gap-2 text-sm"
+                          >
+                            Post
+                            <MoveUpRightIcon className="size-3.5" />
+                          </Link>
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </fieldset>
               </div>
