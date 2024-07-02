@@ -28,7 +28,7 @@ export const isExistingWaitingUser = async (email: string): Promise<any> => {
   // Check if email already exists
   const { data: existingWaitingUser } = await supabase
     .from('waitingUsers')
-    .select('email')
+    .select('*')
     .eq('email', email)
     .single();
 
