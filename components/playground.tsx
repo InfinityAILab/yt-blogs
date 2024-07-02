@@ -68,7 +68,7 @@ export function PlayGround() {
   const [videoId, setVideoId] = useState("")
   const [email, setEmail] = useState("")
   const [name, setName] = useState("")
-  const [showPostBlogModal, setShowPostBlogModal] = useState(true)
+  const [showPostBlogModal, setShowPostBlogModal] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [isPosting, setIsPosting] = useState(false)
   const [content, setContent] = useState('')
@@ -125,12 +125,11 @@ export function PlayGround() {
       if (res.ok) {
         router.push(`blogs/${slug}`);
         setSlug('')
-      } else {
-        toast.error(await res.json())
       }
     } catch (error: any) {
-      toast.error(error?.message)
+      toast.error(error)
     }
+    setIsPosting(false);
   };
 
   const handleSubmit = async (e: any) => {
@@ -462,7 +461,7 @@ export function PlayGround() {
                   </Button>
                 </div>
               </div>
-              {!videoId && (
+              {videoId && (
                 <>
                 <div>
                   <Label htmlFor="title">Preview</Label>
@@ -577,13 +576,14 @@ export function PlayGround() {
               </div>
             </div>
           </div>
-          <div className="flex gap-3 justify-end">
-            <Button disabled={!isValidEmail(email)} variant='outline' onClick={handleClickPost} className="flex gap-2">
-              Post {isPosting && <Loader2Icon className="animate-spin size-5" />}
+          <div className="flex gap-3 items-center justify-end">
+            <Button disabled={!isValidEmail(email) || isPosting} variant='outline' onClick={handleClickPost} className="flex gap-2">
+              Post
             </Button>
-            <Button disabled={!isValidEmail(email)} variant='highlight' onClick={handleClickPostAndJoinWaitList} className="flex gap-2">
-              Post & Join Waitlist {isPosting && <Loader2Icon className="animate-spin size-5" />}
+            <Button disabled={!isValidEmail(email) || isPosting} variant='highlight' onClick={handleClickPostAndJoinWaitList} className="flex gap-2">
+              Post & Join Waitlist 
             </Button>
+            {isPosting && <Loader2Icon className="animate-spin size-5" />}
           </div>
         </div>
       </Modal>
