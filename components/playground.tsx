@@ -139,9 +139,11 @@ export function PlayGround() {
     if (id) {
       setVideoId(id)
       try {
-        const response = await fetch(`/api/fetchTranscript?videoId=${encodeURIComponent(id)}`);
-        const data = await response.json();
-  
+        const response = await fetch(
+          `/api/fetchTranscript?videoId=${encodeURIComponent(id)}`
+        )
+        const data = await response.json()
+
         if (response.ok) {
           const { title, slug, content } = extractBlogDataFromApiResponse(data?.blogPost)
           setTitle(title || '')
@@ -151,7 +153,7 @@ export function PlayGround() {
       } catch (err) {
         toast.error('An unexpected error occurred')
       } finally {
-        console.log('done')
+        console.log("done")
       }
     }
     setIsLoading(false)
@@ -466,7 +468,6 @@ export function PlayGround() {
                 <div>
                   <Label htmlFor="title">Preview</Label>
                   <div className="h-52 w-full mx-auto border rounded-lg overflow-hidden">
-                    
                     <iframe
                       className="h-52 w-full mx-auto rounded-lg overflow-hidden"
                       width="100%"
