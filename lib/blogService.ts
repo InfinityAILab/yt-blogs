@@ -25,27 +25,14 @@ export const fetchBlogs = async (): Promise<Blog[]> => {
   return data as Blog[];
 };
 
-export const createBlog = async (title: string, content: string, slug: string): Promise<void> => {
-
-  // Check if slug already exists
-  const { data: existingSlug } = await supabase
-    .from('blogs')
-    .select('slug')
-    .eq('slug', slug)
-    .single();
-
-  if (existingSlug) {
-    throw new Error('Slug already exists. Please choose a different slug.');
-  }
+export const createBlog = async ({title, content, slug, uuid = null, author = null}: Blog): Promise<void> => {
 
   const { error } = await supabase
     .from('blogs')
-    .insert([{ title, content, slug }]);
+    .insert([{ title, content, slug, uuid, author }]);
 
   if (error) {
     toast.error(error?.message)
-  } else{
-    toast.success('Blog Generated Successfully!')
   }
 };
 
