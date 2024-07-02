@@ -19,9 +19,10 @@ interface EditorProps {
   className?: string
 }
 
+// @ts-ignore
 const MdEditor = dynamic(() => import("react-markdown-editor-lite"), {
   ssr: false,
-}) as React.ComponentType<EditorProps>
+}) as React.ComponentType<EditorProps>;
 
 const mdParser = new markdownIt({
   html: true,
