@@ -22,7 +22,7 @@ import {
   Turtle,
 } from "lucide-react"
 
-import { FormEvent } from 'react';
+import { FormEvent, useEffect } from 'react';
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -55,15 +55,37 @@ import "react-markdown-editor-lite/lib/index.css"
 
 import Modal from "./ui/modal"
 import Link from "next/link"
+import { useRouter } from "next/navigation";
+import { Blog } from "@/lib/blogService";
+import { createNewWaitingUser, isExistingWaitingUser } from "@/lib/waitingUserService";
+import { toast } from "sonner";
 
 export function PlayGround() {
   const [youtubeUrl, setYoutubeUrl] = useState("")
   const [title, setTitle] = useState("")
   const [slug, setSlug] = useState("")
+  const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
   const [videoId, setVideoId] = useState("")
-  const [isShareModalOpen, setIsShareModalOpen] = useState(false)
+  const [email, setEmail] = useState("")
+  const [name, setName] = useState("")
+  const [showPostBlogModal, setShowPostBlogModal] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
-  const [mdText, setMdText] = useState('')
+  const [isPosting, setIsPosting] = useState(false)
+  const [content, setContent] = useState('')
+  const router = useRouter();
+
+  useEffect(() => {
+    if (slug) {
+      const checkSlug = async () => {
+        const res = await fetch(`/api/slug-exists?slug=${slug}`);
+        const data = await res.json();
+        setSlugAvailable(!data.exists);
+      };
+      checkSlug();
+    } else {
+      setSlugAvailable(null);
+    }
+  }, [slug]);
 
   const extractVideoId = (url: string) => {
     try {
@@ -83,13 +105,33 @@ export function PlayGround() {
     const title = titleMatch ? titleMatch[1] : null;
     const slug = slugMatch ? slugMatch[1] : null;
   
-    const markdown = text
+    const content = text
       .replace(/<title>.*?<\/title>/, '')
       .replace(/<slug>.*?<\/slug>/, '')
       .trim();
   
-    return { title, slug, markdown };
+    return { title, slug, content };
   }
+
+
+  const createNewBlog = async ({title, slug, content, uuid, author}: Blog) => {
+    try {
+      const res = await fetch('/api/blogs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, content, slug, uuid, author }),
+      });
+
+      if (res.ok) {
+        router.push(`blogs/${slug}`);
+        setSlug('')
+      } else {
+        toast.error(await res.json())
+      }
+    } catch (error: any) {
+      toast.error(error?.message)
+    }
+  };
 
   const handleSubmit = async (e: any) => {
     e.preventDefault()
@@ -102,15 +144,13 @@ export function PlayGround() {
         const data = await response.json();
   
         if (response.ok) {
-          const { title, slug, markdown } = extractBlogDataFromApiResponse(data?.blogPost)
+          const { title, slug, content } = extractBlogDataFromApiResponse(data?.blogPost)
           setTitle(title || '')
+          setContent(content)
           setSlug(slug || '')
-          setMdText(markdown)
-        } else {
-          console.log('data.error', data.error)
         }
       } catch (err) {
-        console.log('An unexpected error occurred');
+        toast.error('An unexpected error occurred')
       } finally {
         console.log('done')
       }
@@ -118,16 +158,42 @@ export function PlayGround() {
     setIsLoading(false)
   }
 
-
-  const handleShare = () => {
-    setIsShareModalOpen(true)
-  }
-  const closeShareModal = () => {
-    setIsShareModalOpen(false)
+  const handleClickPost = async () => {
+    setIsPosting(true);
+    await createNewBlog({title, slug, content})
+    setIsPosting(false);
   }
 
-  const handleSaveText = () => {
-    localStorage.setItem("markdownText", mdText)
+  const handleClickPostAndJoinWaitList = async () => {
+    setIsPosting(true);
+    const existingWaitingUser = await isExistingWaitingUser(email)
+    console.log('existingWaitingUser:', existingWaitingUser);
+    if(existingWaitingUser?.email){
+      createNewBlog({
+        title, 
+        slug, 
+        content, 
+        uuid: Number(existingWaitingUser?.id) || null, 
+        author: existingWaitingUser?.name || null, 
+      })
+      return
+    }
+    const newWaitingUser = await createNewWaitingUser(name, email)
+    console.log('newWaitingUser:', newWaitingUser);
+    createNewBlog({
+      title, 
+      slug, 
+      content, 
+      uuid: Number(newWaitingUser?.id) || null, 
+      author: newWaitingUser?.name || null, 
+    })
+    setIsPosting(false);
+  }
+
+  function isValidEmail(email: string){
+    if(!email) return false
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
   }
 
   return (
@@ -257,7 +323,7 @@ export function PlayGround() {
           <h1 className="text-xl font-semibold">yoblog</h1>
           <Drawer>
             <DrawerTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden">
+              <Button variant="ghost" size="icon" className="hidden">
                 <Settings className="size-4" />
                 <span className="sr-only">Settings</span>
               </Button>
@@ -392,19 +458,20 @@ export function PlayGround() {
                     onChange={(e) => setYoutubeUrl(e.target.value)}
                   />
                   <Button disabled={!youtubeUrl} onClick={handleSubmit} type="submit" >
-                    {isLoading ? <Loader2Icon className="animate-spin" /> : 'Create Blog'}
+                    Generate
                   </Button>
                 </div>
               </div>
-              {videoId && (
+              {!videoId && (
+                <>
                 <div>
                   <Label htmlFor="title">Preview</Label>
-                  <div className="h-52 xl:h-72 w-full mx-auto border rounded-lg overflow-hidden">
+                  <div className="h-52 w-full mx-auto border rounded-lg overflow-hidden">
                     
                     <iframe
-                      className="h-52 xl:h-72 w-full mx-auto rounded-lg overflow-hidden"
+                      className="h-52 w-full mx-auto rounded-lg overflow-hidden"
                       width="100%"
-                      height="384"
+                      height="240"
                       src={`https://www.youtube.com/embed/${videoId}`}
                       title="YouTube video player"
                       frameBorder="0"
@@ -413,55 +480,56 @@ export function PlayGround() {
                     ></iframe>
                   </div>
                 </div>
-              )}
-              <div className="w-full">
-                <fieldset className="grid gap-6 rounded-lg border p-4">
-                  <legend className="-ml-1 px-1 text-sm font-medium">
-                    Post :: Blog
-                  </legend>
-                  <div className="grid gap-3 ">
-                    <Label htmlFor="model">Title</Label>
-                    <Input
-                      type="text"
-                      placeholder=""
-                      id="title"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                    />
-                    <Label htmlFor="model">Slug*</Label>
+                <div className="w-full">
+                  <fieldset className="grid gap-6 rounded-lg border p-4">
+                    <legend className="-ml-1 px-1 text-sm font-medium">
+                      Post :: Blog
+                    </legend>
+                    <div className="grid gap-3 ">
+                      <Label htmlFor="model">Title</Label>
+                      <Input
+                        type="text"
+                        placeholder=""
+                        id="title"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                      />
+                      <Label htmlFor="model">Slug*</Label>
 
-                    <Input
-                      type="text"
-                      placeholder=""
-                      id="slug"
-                      value={slug}
-                      onChange={(e) => setSlug(e.target.value)}
-                    />
-                    {/* <Label htmlFor="model">Tags (SEO)</Label>
-
-                    <textarea
-                      className="border border-gray-300 rounded-md p-2 focus-within:ring-gray-300"
-                      placeholder=""
-                      // id="youtubeUrl"
-                      // value={youtubeUrl}
-                      // onChange={(e) => setYoutubeUrl(e.target.value)}
-                    /> */}
-                    {/* </div> */}
-                    {(mdText && slug) && <div className="relative ml-auto">
-                      <Button
-                        size="sm"
-                        className="gap-2 text-sm"
-                        onClick={handleShare}
-                      >
-                        <Link href={`/user/john-doe/${slug}`} className="flex items-center gap-2 text-sm">
-                          Post
-                          <MoveUpRightIcon className="size-3.5" />
-                        </Link>
-                      </Button>
-                    </div>}
-                  </div>
-                </fieldset>
-              </div>
+                      <Input
+                        type="text"
+                        placeholder=""
+                        id="slug"
+                        value={slug}
+                        onChange={(e) => setSlug(e.target.value)}
+                      />
+                      {slug &&<>{!slugAvailable ? 
+                        <p className="text-sm text-red-500">Slug is not available</p> 
+                        : 
+                        <p className="text-sm text-green-500">Slug is available</p>
+                      }</>}
+                      <div className="relative ml-auto">
+                        <Button
+                          size="sm"
+                          className="gap-2 text-sm"
+                          onClick={() => setShowPostBlogModal(true)}
+                          disabled={!content ||!slug ||!slugAvailable}
+                        >
+                          {isLoading ? 
+                            <span className="flex">
+                              BL<Loader2Icon className="animate-spin size-4 mt-0.5" />GING
+                            </span> 
+                            : 
+                            <> 
+                              Post <MoveUpRightIcon className="size-3.5" />
+                          </>} 
+                        </Button>
+                      </div>
+                    </div>
+                  </fieldset>
+                </div>
+              </>
+            )}
             </div>
           </fieldset>
           <div className="lg:col-span-2 h-full">
@@ -469,27 +537,56 @@ export function PlayGround() {
               <legend className="-ml-1 px-1 text-sm font-medium">
                 Blog :: Markdown Editor
               </legend>
-              <MarkdownEditor text={mdText} setMdText={setMdText} />
+              <MarkdownEditor content={content} setContent={setContent} />
             </fieldset>
           </div>
         </main>
       </div>
       {/* Modal */}
-      {/* <Modal
-        isOpen={isShareModalOpen}
-        onClose={closeShareModal}
+      <Modal
+        isOpen={showPostBlogModal}
+        onClose={() => setShowPostBlogModal(false)}
         title="Share this content"
       >
-        <div className="flex items-center justify-center gap-2">
-          <Input type="text" />
-          <Button
-            className="bg-white hover:bg-gray-100 border rounded-lg text-black"
-            onClick={handleSaveText}
-          >
-            <Link href="/user/username/blog-slug">Post</Link>
-          </Button>
+        <div className="flex flex-col gap-5">
+          <div className="flex flex-col items-center gap-3 w-full">
+            <div className="flex flex-col gap-1 w-full">
+              <Label>Your Blog URL</Label>
+              <Input type="text" className="border-gray-400" disabled value={`/blogs/${slug}`} />
+            </div>
+            <div className="grid lg:grid-cols-3 gap-3">
+              <div className="lg:col-span-2 flex flex-col gap-1 w-full">
+                <Label>Your Email*</Label>
+                <Input 
+                  type="email" 
+                  value={email}
+                  placeholder="john@example.com"
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+                <p className="text-xs text-gray-600">It will NOT be shared publicly.</p>
+              </div>
+              <div className="flex flex-col gap-1 w-full">
+                <Label>Name (Optional)</Label>
+                <Input 
+                  type="text" 
+                  value={name}
+                  placeholder="YoBlogs User"
+                  onChange={(e) => setName(e.target.value)}
+                />
+                <p className="text-xs text-gray-600">It will be public</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-3 justify-end">
+            <Button disabled={!isValidEmail(email)} variant='outline' onClick={handleClickPost} className="flex gap-2">
+              Post {isPosting && <Loader2Icon className="animate-spin size-5" />}
+            </Button>
+            <Button disabled={!isValidEmail(email)} variant='highlight' onClick={handleClickPostAndJoinWaitList} className="flex gap-2">
+              Post & Join Waitlist {isPosting && <Loader2Icon className="animate-spin size-5" />}
+            </Button>
+          </div>
         </div>
-      </Modal> */}
+      </Modal>
     </div>
   )
 }
