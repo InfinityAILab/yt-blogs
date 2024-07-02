@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import Script from "next/script"
+import { Toaster } from "@/components/ui/sonner"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -32,10 +33,9 @@ export default function RootLayout({
           `}
         </Script>
       </head>
-      <body
-        className={`h-full w-full overflow-hidden relative ${inter.className}`}
-      >
+      <body className={`h-full w-full relative ${inter.className}`}>
         {children}
+        <Toaster richColors />
       </body>
     </html>
   )

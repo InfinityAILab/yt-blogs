@@ -4,8 +4,17 @@ import { GitHubLogoIcon, TwitterLogoIcon } from "@radix-ui/react-icons"
 import { LocateIcon } from "lucide-react"
 import Image from "next/image"
 import React from "react"
+import { fetchBlogs, Blog } from '../../../lib/blogService';
 
-export default function page() {
+interface Props {
+  blogs: Blog[];
+}
+
+export default async function page() {
+  const blogs = await fetchBlogs();
+
+  console.log('blogs ==========>', blogs)
+
   return (
     <section className="bg-gray-50 space-y-4 mb-4">
       <div className="h-40 bg-indigo-700 "></div>

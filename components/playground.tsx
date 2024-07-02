@@ -22,7 +22,7 @@ import {
   Turtle,
 } from "lucide-react"
 
-import { FormEvent } from "react"
+import { FormEvent, useEffect } from 'react';
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -55,73 +55,37 @@ import "react-markdown-editor-lite/lib/index.css"
 
 import Modal from "./ui/modal"
 import Link from "next/link"
+import { useRouter } from "next/navigation";
+import { Blog } from "@/lib/blogService";
+import { createNewWaitingUser, isExistingWaitingUser } from "@/lib/waitingUserService";
+import { toast } from "sonner";
 
-const initialText = `
-# Streamlining Your Tailwind CSS with the Prettier Plugin
-
-When it comes to deciding the order of your Tailwind utility classes in a project, you may have had discussions with your team or within yourself. Should we sort them alphabetically? By color? Wait, let's schedule a meeting!
-
-In this blog post, we'll take a look at the new Prettier plugin for Tailwind CSS and how it makes those sometimes difficult decisions for you. One less thing to worry about for you and your team.
-
-## Setting Up Prettier
-
-Assuming you may not be familiar with Prettier, we'll do the setup from scratch together. If you're already using Prettier, you only need to install the plugin to get started.
-
-Prettier is an opinionated code formatter that ensures every file in the project is formatted the same way. It has a few options by design, as the whole idea is to stop debating and let the tool make the decisions for you.
-
-Prettier works with a lot of languages and is supported in many editors and IDEs. Wherever Prettier works, the Tailwind CSS plugin will work as well. In this video, I'm using VS Code, but you'll be able to do a similar setup in many other editors.
-
-Let's start by installing Prettier as a dev dependency:
-
-\`\`\`
-npm install --save-dev prettier
-\`\`\`
-
-Now, in the root of our project, I'll create a new file called \`.prettierrc.json\`. This file allows you to pass options if needed, and it also indicates that the project is using Prettier. 
-
-Next, I'll show you how to run Prettier from the command line. I'll use the \`--check\` flag to see if there are any formatting issues in the \`index.html\` file. If there are, I can use the \`--write\` flag to automatically fix them.
-
-\`\`\`
-npx prettier --check index.html
-npx prettier --write index.html
-\`\`\`
-
-However, what I prefer to do is to format the files every time I save them. To set this up in VS Code, I'll open the Extensions panel and search for the Prettier extension. Once installed, I'll go to my VS Code settings and make sure the "Format on Save" option is checked.
-
-Now, whenever I save a file, Prettier will automatically format it for me.
-
-## Integrating the Tailwind CSS Plugin
-
-With Prettier set up, it's time to bring in the Tailwind CSS plugin:
-
-\`\`\`
-npm install --save-dev prettier-plugin-tailwindcss
-\`\`\`
-
-This plugin follows Prettier's auto-loading convention, so as long as you have Prettier set up in your project, it will start working automatically as soon as you install it.
-
-Let's see the plugin in action. I'll paste some Tailwind utility classes into an HTML file and watch what happens when I save it.
-
-The plugin will sort the classes in the same way Tailwind sorts them in the CSS output. Classes in the base layer will be sorted first, followed by the classes in the components layer, and finally the classes in the utilities layer.
-
-The plugin will also group modifiers and place them at the end of the list, and it will handle responsive modifiers as well, grouping them by breakpoint.
-
-If you have a custom class that doesn't come from Tailwind, the plugin will place that class at the start of the list, making it clear what element uses it.
-
-## Wrapping Up
-
-By design, there is no way to customize the sort order. The plugin has strongly held opinions on that, as the biggest benefit of using this plugin is to make these decisions for you, so you can stop debating and arguing with your team.
-
-I hope this blog post has shown you how to add the Prettier plugin to an existing Tailwind CSS project and the real-life benefits it can bring. No more worrying about class sorting - let the tool handle it for you!
-  `
 export function PlayGround() {
   const [youtubeUrl, setYoutubeUrl] = useState("")
-  const [title, setTitle] = useState("Tailwind CSS with Prettier Plugin")
-  const [slug, setSlug] = useState("tailwind-with-prettier")
+  const [title, setTitle] = useState("")
+  const [slug, setSlug] = useState("")
+  const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
   const [videoId, setVideoId] = useState("")
-  const [isShareModalOpen, setIsShareModalOpen] = useState(false)
+  const [email, setEmail] = useState("")
+  const [name, setName] = useState("")
+  const [showPostBlogModal, setShowPostBlogModal] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [mdText, setMdText] = useState(initialText)
+  const [isPosting, setIsPosting] = useState(false)
+  const [content, setContent] = useState('')
+  const router = useRouter();
+
+  useEffect(() => {
+    if (slug) {
+      const checkSlug = async () => {
+        const res = await fetch(`/api/slug-exists?slug=${slug}`);
+        const data = await res.json();
+        setSlugAvailable(!data.exists);
+      };
+      checkSlug();
+    } else {
+      setSlugAvailable(null);
+    }
+  }, [slug]);
 
   const extractVideoId = (url: string) => {
     try {
@@ -135,19 +99,38 @@ export function PlayGround() {
   }
 
   function extractBlogDataFromApiResponse(text: string) {
-    const titleMatch = text.match(/<title>(.*?)<\/title>/)
-    const slugMatch = text.match(/<slug>(.*?)<\/slug>/)
-
-    const title = titleMatch ? titleMatch[1] : null
-    const slug = slugMatch ? slugMatch[1] : null
-
-    const markdown = text
-      .replace(/<title>.*?<\/title>/, "")
-      .replace(/<slug>.*?<\/slug>/, "")
-      .trim()
-
-    return { title, slug, markdown }
+    const titleMatch = text.match(/<title>(.*?)<\/title>/);
+    const slugMatch = text.match(/<slug>(.*?)<\/slug>/);
+  
+    const title = titleMatch ? titleMatch[1] : null;
+    const slug = slugMatch ? slugMatch[1] : null;
+  
+    const content = text
+      .replace(/<title>.*?<\/title>/, '')
+      .replace(/<slug>.*?<\/slug>/, '')
+      .trim();
+  
+    return { title, slug, content };
   }
+
+
+  const createNewBlog = async ({title, slug, content, uuid, author}: Blog) => {
+    try {
+      const res = await fetch('/api/blogs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, content, slug, uuid, author }),
+      });
+
+      if (res.ok) {
+        router.push(`blogs/${slug}`);
+        setSlug('')
+      }
+    } catch (error: any) {
+      toast.error(error)
+    }
+    setIsPosting(false);
+  };
 
   const handleSubmit = async (e: any) => {
     e.preventDefault()
@@ -162,17 +145,13 @@ export function PlayGround() {
         const data = await response.json()
 
         if (response.ok) {
-          const { title, slug, markdown } = extractBlogDataFromApiResponse(
-            data?.blogPost
-          )
-          setTitle(title || "")
-          setSlug(slug || "")
-          setMdText(markdown)
-        } else {
-          console.log("data.error", data.error)
+          const { title, slug, content } = extractBlogDataFromApiResponse(data?.blogPost)
+          setTitle(title || '')
+          setContent(content)
+          setSlug(slug || '')
         }
       } catch (err) {
-        console.log("An unexpected error occurred")
+        toast.error('An unexpected error occurred')
       } finally {
         console.log("done")
       }
@@ -180,15 +159,42 @@ export function PlayGround() {
     setIsLoading(false)
   }
 
-  const handleShare = () => {
-    setIsShareModalOpen(true)
-  }
-  const closeShareModal = () => {
-    setIsShareModalOpen(false)
+  const handleClickPost = async () => {
+    setIsPosting(true);
+    await createNewBlog({title, slug, content})
+    setIsPosting(false);
   }
 
-  const handleSaveText = () => {
-    localStorage.setItem("markdownText", mdText)
+  const handleClickPostAndJoinWaitList = async () => {
+    setIsPosting(true);
+    const existingWaitingUser = await isExistingWaitingUser(email)
+    console.log('existingWaitingUser:', existingWaitingUser);
+    if(existingWaitingUser?.email){
+      createNewBlog({
+        title, 
+        slug, 
+        content, 
+        uuid: Number(existingWaitingUser?.id) || null, 
+        author: existingWaitingUser?.name || null, 
+      })
+      return
+    }
+    const newWaitingUser = await createNewWaitingUser(name, email)
+    console.log('newWaitingUser:', newWaitingUser);
+    createNewBlog({
+      title, 
+      slug, 
+      content, 
+      uuid: Number(newWaitingUser?.id) || null, 
+      author: newWaitingUser?.name || null, 
+    })
+    setIsPosting(false);
+  }
+
+  function isValidEmail(email: string){
+    if(!email) return false
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
   }
 
   return (
@@ -318,7 +324,7 @@ export function PlayGround() {
           <h1 className="text-xl font-semibold">yoblog</h1>
           <Drawer>
             <DrawerTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden">
+              <Button variant="ghost" size="icon" className="hidden">
                 <Settings className="size-4" />
                 <span className="sr-only">Settings</span>
               </Button>
@@ -452,27 +458,20 @@ export function PlayGround() {
                     value={youtubeUrl}
                     onChange={(e) => setYoutubeUrl(e.target.value)}
                   />
-                  <Button
-                    disabled={!youtubeUrl}
-                    onClick={handleSubmit}
-                    type="submit"
-                  >
-                    {isLoading ? (
-                      <Loader2Icon className="animate-spin" />
-                    ) : (
-                      "Create Blog"
-                    )}
+                  <Button disabled={!youtubeUrl} onClick={handleSubmit} type="submit" >
+                    Generate
                   </Button>
                 </div>
               </div>
               {videoId && (
+                <>
                 <div>
                   <Label htmlFor="title">Preview</Label>
-                  <div className="h-52 xl:h-72 w-full mx-auto border rounded-lg overflow-hidden">
+                  <div className="h-52 w-full mx-auto border rounded-lg overflow-hidden">
                     <iframe
-                      className="h-52 xl:h-72 w-full mx-auto rounded-lg overflow-hidden"
+                      className="h-52 w-full mx-auto rounded-lg overflow-hidden"
                       width="100%"
-                      height="384"
+                      height="240"
                       src={`https://www.youtube.com/embed/${videoId}`}
                       title="YouTube video player"
                       frameBorder="0"
@@ -481,60 +480,56 @@ export function PlayGround() {
                     ></iframe>
                   </div>
                 </div>
-              )}
-              <div className="w-full">
-                <fieldset className="grid gap-6 rounded-lg border p-4">
-                  <legend className="-ml-1 px-1 text-sm font-medium">
-                    Post :: Blog
-                  </legend>
-                  <div className="grid gap-3 ">
-                    <Label htmlFor="model">Title</Label>
-                    <Input
-                      type="text"
-                      placeholder=""
-                      id="title"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                    />
-                    <Label htmlFor="model">Slug*</Label>
+                <div className="w-full">
+                  <fieldset className="grid gap-6 rounded-lg border p-4">
+                    <legend className="-ml-1 px-1 text-sm font-medium">
+                      Post :: Blog
+                    </legend>
+                    <div className="grid gap-3 ">
+                      <Label htmlFor="model">Title</Label>
+                      <Input
+                        type="text"
+                        placeholder=""
+                        id="title"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                      />
+                      <Label htmlFor="model">Slug*</Label>
 
-                    <Input
-                      type="text"
-                      placeholder=""
-                      id="slug"
-                      value={slug}
-                      onChange={(e) => setSlug(e.target.value)}
-                    />
-                    {/* <Label htmlFor="model">Tags (SEO)</Label>
-
-                    <textarea
-                      className="border border-gray-300 rounded-md p-2 focus-within:ring-gray-300"
-                      placeholder=""
-                      // id="youtubeUrl"
-                      // value={youtubeUrl}
-                      // onChange={(e) => setYoutubeUrl(e.target.value)}
-                    /> */}
-                    {/* </div> */}
-                    {mdText && slug && (
+                      <Input
+                        type="text"
+                        placeholder=""
+                        id="slug"
+                        value={slug}
+                        onChange={(e) => setSlug(e.target.value)}
+                      />
+                      {slug &&<>{!slugAvailable ? 
+                        <p className="text-sm text-red-500">Slug is not available</p> 
+                        : 
+                        <p className="text-sm text-green-500">Slug is available</p>
+                      }</>}
                       <div className="relative ml-auto">
                         <Button
                           size="sm"
                           className="gap-2 text-sm"
-                          onClick={handleShare}
+                          onClick={() => setShowPostBlogModal(true)}
+                          disabled={!content ||!slug ||!slugAvailable}
                         >
-                          <Link
-                            href={`/user/john-doe/${slug}`}
-                            className="flex items-center gap-2 text-sm"
-                          >
-                            Post
-                            <MoveUpRightIcon className="size-3.5" />
-                          </Link>
+                          {isLoading ? 
+                            <span className="flex">
+                              BL<Loader2Icon className="animate-spin size-4 mt-0.5" />GING
+                            </span> 
+                            : 
+                            <> 
+                              Post <MoveUpRightIcon className="size-3.5" />
+                          </>} 
                         </Button>
                       </div>
-                    )}
-                  </div>
-                </fieldset>
-              </div>
+                    </div>
+                  </fieldset>
+                </div>
+              </>
+            )}
             </div>
           </fieldset>
           <div className="lg:col-span-2 h-full">
@@ -542,27 +537,57 @@ export function PlayGround() {
               <legend className="-ml-1 px-1 text-sm font-medium">
                 Blog :: Markdown Editor
               </legend>
-              <MarkdownEditor text={mdText} setMdText={setMdText} />
+              <MarkdownEditor content={content} setContent={setContent} />
             </fieldset>
           </div>
         </main>
       </div>
       {/* Modal */}
-      {/* <Modal
-        isOpen={isShareModalOpen}
-        onClose={closeShareModal}
+      <Modal
+        isOpen={showPostBlogModal}
+        onClose={() => setShowPostBlogModal(false)}
         title="Share this content"
       >
-        <div className="flex items-center justify-center gap-2">
-          <Input type="text" />
-          <Button
-            className="bg-white hover:bg-gray-100 border rounded-lg text-black"
-            onClick={handleSaveText}
-          >
-            <Link href="/user/username/blog-slug">Post</Link>
-          </Button>
+        <div className="flex flex-col gap-5">
+          <div className="flex flex-col items-center gap-3 w-full">
+            <div className="flex flex-col gap-1 w-full">
+              <Label>Your Blog URL</Label>
+              <Input type="text" className="border-gray-400" disabled value={`/blogs/${slug}`} />
+            </div>
+            <div className="grid lg:grid-cols-3 gap-3">
+              <div className="lg:col-span-2 flex flex-col gap-1 w-full">
+                <Label>Your Email*</Label>
+                <Input 
+                  type="email" 
+                  value={email}
+                  placeholder="john@example.com"
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+                <p className="text-xs text-gray-600">It will NOT be shared publicly.</p>
+              </div>
+              <div className="flex flex-col gap-1 w-full">
+                <Label>Name (Optional)</Label>
+                <Input 
+                  type="text" 
+                  value={name}
+                  placeholder="YoBlogs User"
+                  onChange={(e) => setName(e.target.value)}
+                />
+                <p className="text-xs text-gray-600">It will be public</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-3 items-center justify-end">
+            <Button disabled={!isValidEmail(email) || isPosting} variant='outline' onClick={handleClickPost} className="flex gap-2">
+              Post
+            </Button>
+            <Button disabled={!isValidEmail(email) || isPosting} variant='highlight' onClick={handleClickPostAndJoinWaitList} className="flex gap-2">
+              Post & Join Waitlist 
+            </Button>
+            {isPosting && <Loader2Icon className="animate-spin size-5" />}
+          </div>
         </div>
-      </Modal> */}
+      </Modal>
     </div>
   )
 }

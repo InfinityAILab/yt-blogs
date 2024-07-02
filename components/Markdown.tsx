@@ -14,14 +14,15 @@ import { Label } from "./ui/label"
 interface EditorProps {
   value: string
   style?: React.CSSProperties
-  onChange: (data: { text: string; html: string }) => void
-  renderHTML: (text: string) => React.ReactNode
+  onChange: (data: { content: string; html: string }) => void
+  renderHTML: (content: string) => React.ReactNode
   className?: string
 }
 
+// @ts-ignore
 const MdEditor = dynamic(() => import("react-markdown-editor-lite"), {
   ssr: false,
-}) as React.ComponentType<EditorProps>
+}) as React.ComponentType<EditorProps>;
 
 const mdParser = new markdownIt({
   html: true,
@@ -40,20 +41,20 @@ const mdParser = new markdownIt({
   },
 })
 
-export default function MarkdownEditor({ text, setMdText }: any) {
-  const handleEditorChange = ({ text }: { text: string }) => {
-    setMdText(text)
+export default function MarkdownEditor({ content, setContent }: any) {
+  const handleEditorChange = ({ content }: { content: string }) => {
+    setContent(content)
   }
 
   return (
     <div className="overflow-auto h-full">
       <MdEditor
-        value={text}
-        onChange={(text) => handleEditorChange(text)}
-        renderHTML={(text) => (
+        value={content}
+        onChange={(content) => handleEditorChange(content)}
+        renderHTML={(content) => (
           <div
           className="markdown-body prose"
-          dangerouslySetInnerHTML={{ __html: mdParser.render(text) }}
+          dangerouslySetInnerHTML={{ __html: mdParser.render(content) }}
           />
         )}
         className="border border-gray-300 rounded-lg h-full overflow-hidden"
